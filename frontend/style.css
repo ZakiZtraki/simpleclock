@@ -86,9 +86,28 @@ header p {
     margin-bottom: 8px;
 }
 
+.slider-wrapper {
+    position: relative;
+    padding-top: 16px;
+}
+
 #timeSlider {
     width: 100%;
     accent-color: var(--accent);
+}
+
+.slider-value {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    border-radius: 8px;
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 14px;
+    white-space: nowrap;
+    pointer-events: none;
 }
 
 .reset {

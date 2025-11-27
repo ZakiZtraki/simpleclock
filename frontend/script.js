@@ -8,6 +8,7 @@ const elements = {
     timezonesDatalist: document.getElementById('timezones'),
     timeSlider: document.getElementById('timeSlider'),
     offsetLabel: document.getElementById('offsetLabel'),
+    offsetValue: document.getElementById('offsetValue'),
     localClock: document.getElementById('localClock'),
     targetClock: document.getElementById('targetClock'),
     localTzLabel: document.getElementById('localTzLabel'),
@@ -41,9 +42,18 @@ function setDetectedTimezone() {
     selectedLocalTz = detectedTimezone;
 }
 
-function updateOffsetLabel(value) {
+function updateOffsetDisplay(value) {
     const num = parseFloat(value);
-    elements.offsetLabel.textContent = `${num > 0 ? '+' : ''}${num}h`;
+    const label = `${num > 0 ? '+' : ''}${num}h`;
+    elements.offsetLabel.textContent = label;
+    if (elements.offsetValue) {
+        elements.offsetValue.textContent = label;
+        const slider = elements.timeSlider;
+        const min = parseFloat(slider.min);
+        const max = parseFloat(slider.max);
+        const percent = ((num - min) / (max - min)) * 100;
+        elements.offsetValue.style.left = `calc(${percent}% - 24px)`;
+    }
 }
 
 async function updateLocalClock(offsetHours) {
@@ -95,7 +105,7 @@ async function updateTargetClock(offsetHours) {
 
 async function updateClocks() {
     const offsetHours = parseFloat(elements.timeSlider.value);
-    updateOffsetLabel(offsetHours);
+    updateOffsetDisplay(offsetHours);
     await Promise.all([updateLocalClock(offsetHours), updateTargetClock(offsetHours)]);
 }
 
