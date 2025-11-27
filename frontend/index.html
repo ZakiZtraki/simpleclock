@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Clock</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="container">
+        <header>
+            <h1>Simple Timezone Clock</h1>
+            <p>Compare your local time with any timezone and shift time by ±24 hours.</p>
+        </header>
+
+        <section class="controls">
+            <div class="control-group">
+                <h2>Local Timezone</h2>
+                <div class="input-row">
+                    <label>
+                        <input type="checkbox" id="autoTimezone" checked>
+                        Use auto-detected timezone (<span id="detectedTz">Detecting...</span>)
+                    </label>
+                </div>
+                <div class="input-row">
+                    <label for="localTimezone">Manual timezone override</label>
+                    <input list="timezones" id="localTimezone" placeholder="Search timezone" disabled>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h2>Selected Timezone</h2>
+                <div class="input-row">
+                    <label for="targetTimezone">Search by city/country</label>
+                    <input list="timezones" id="targetTimezone" placeholder="Start typing a city or timezone">
+                </div>
+                <p class="hint">Example: Europe/Paris, America/New_York, Asia/Tokyo</p>
+            </div>
+
+            <datalist id="timezones"></datalist>
+
+            <div class="control-group slider-group">
+                <div class="slider-labels">
+                    <span>-24h</span>
+                    <strong id="offsetLabel">0h</strong>
+                    <span>+24h</span>
+                </div>
+                <input type="range" id="timeSlider" min="-24" max="24" step="0.5" value="0">
+                <p class="hint">Drag to shift time relative to now.</p>
+            </div>
+
+            <button id="resetBtn" class="reset">Reset</button>
+        </section>
+
+        <section class="clocks">
+            <div class="clock">
+                <h3>Local Time (<span id="localTzLabel">--</span>)</h3>
+                <p id="localClock" class="clock-display">--:--:--</p>
+            </div>
+            <div class="clock">
+                <h3>Selected Timezone (<span id="targetTzLabel">--</span>)</h3>
+                <p id="targetClock" class="clock-display">Choose a timezone</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
