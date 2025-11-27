@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import List, Optional
 
 import pytz
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 app = FastAPI(title="Simple Clock API", version="1.0.0")
@@ -91,6 +93,13 @@ def convert_time(request: ConvertTimeRequest) -> TimeResponse:
 @app.get("/api/health")
 def healthcheck():
     return {"status": "ok"}
+
+
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+
+if FRONTEND_DIR.exists():
+    # Serve the static frontend directly from the same app for containerized deploys
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
 
 if __name__ == "__main__":

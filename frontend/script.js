@@ -1,4 +1,7 @@
-const apiBase = 'http://localhost:8000';
+const apiBase =
+    window.location.origin.startsWith('http') && !window.location.origin.startsWith('file')
+        ? window.location.origin
+        : 'http://localhost:8000';
 
 const elements = {
     autoTimezone: document.getElementById('autoTimezone'),

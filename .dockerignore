@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.git
+.gitignore
+.venv
+env/
+*.env
+.vscode/
+.idea/
+node_modules/
+dist/
+build/
+OneDrive/
