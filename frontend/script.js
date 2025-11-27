@@ -1,7 +1,20 @@
-const apiBase =
-    window.location.origin.startsWith('http') && !window.location.origin.startsWith('file')
-        ? window.location.origin
-        : 'http://localhost:8000';
+const DEFAULT_API_BASE = 'http://localhost:8000';
+let apiBase = DEFAULT_API_BASE;
+
+async function resolveApiBase() {
+    const origin = window.location.origin;
+    if (origin.startsWith('http') && !origin.startsWith('file')) {
+        try {
+            const response = await fetch(`${origin}/api/health`);
+            if (response.ok) {
+                return origin;
+            }
+        } catch (err) {
+            console.warn('Falling back to default API base', err);
+        }
+    }
+    return DEFAULT_API_BASE;
+}
 
 const elements = {
     autoTimezone: document.getElementById('autoTimezone'),
@@ -175,6 +188,7 @@ function setupEventListeners() {
 }
 
 async function init() {
+    apiBase = await resolveApiBase();
     await fetchTimezones();
     setDetectedTimezone();
     setupEventListeners();

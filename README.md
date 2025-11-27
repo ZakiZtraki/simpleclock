@@ -49,13 +49,12 @@ Then open `http://localhost:5500` in your browser while the backend is running.
 
 ### Using Docker
 
-1. Set up and run the application using Docker:
+1. Build the image:
    ```bash
-docker-compose up --build
+   docker build -t simpleclock .
    ```
-2. Access the application at `http://localhost:8000` for backend and `http://localhost:5500` for frontend.
-
-3. Stop the containers:
+2. Run the container:
    ```bash
-docker-compose down
+   docker run --rm -p 8000:8000 simpleclock
    ```
+3. Open `http://localhost:8000` to use both the API and the frontend (FastAPI serves the static files). Stop the container with `Ctrl+C`.
