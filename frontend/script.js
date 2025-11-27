@@ -37,8 +37,8 @@ const elements = {
 let detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 let selectedLocalTz = detectedTimezone;
 let selectedTargetTz = '';
-let lastLocalDate = null;
-let lastTargetDate = null;
+let lastLocalOffset = null;
+let lastTargetOffset = null;
 
 async function fetchTimezones() {
     try {
@@ -113,7 +113,7 @@ async function updateLocalClock(offsetHours) {
         }
         const data = await response.json();
         const localDate = new Date(data.datetime_iso);
-        lastLocalDate = localDate;
+        lastLocalOffset = typeof data.utc_offset_hours === 'number' ? data.utc_offset_hours : null;
         elements.localClock.textContent = new Intl.DateTimeFormat(undefined, {
             hour: '2-digit',
             minute: '2-digit',
@@ -124,7 +124,7 @@ async function updateLocalClock(offsetHours) {
         elements.localTzLabel.textContent = data.timezone;
     } catch (err) {
         elements.localClock.textContent = 'Error fetching time';
-        lastLocalDate = null;
+        lastLocalOffset = null;
         console.error(err);
     }
 }
@@ -133,7 +133,7 @@ async function updateTargetClock(offsetHours) {
     if (!selectedTargetTz) {
         elements.targetClock.textContent = 'Choose a timezone';
         elements.targetTzLabel.textContent = '--';
-        lastTargetDate = null;
+        lastTargetOffset = null;
         return;
     }
     try {
@@ -151,7 +151,7 @@ async function updateTargetClock(offsetHours) {
         }
         const data = await response.json();
         const targetDate = new Date(data.datetime_iso);
-        lastTargetDate = targetDate;
+        lastTargetOffset = typeof data.utc_offset_hours === 'number' ? data.utc_offset_hours : null;
         elements.targetClock.textContent = new Intl.DateTimeFormat(undefined, {
             hour: '2-digit',
             minute: '2-digit',
@@ -162,14 +162,15 @@ async function updateTargetClock(offsetHours) {
         elements.targetTzLabel.textContent = data.timezone;
     } catch (err) {
         elements.targetClock.textContent = 'Error fetching time';
-        lastTargetDate = null;
+        lastTargetOffset = null;
         console.error(err);
     }
 }
 
-function formatDifferenceLabel(totalMinutes) {
+function formatDifferenceLabel(diffHours) {
+    const totalMinutes = Math.round(diffHours * 60);
     if (totalMinutes === 0) {
-        return '0 hours';
+        return '0h';
     }
     const sign = totalMinutes > 0 ? '+' : '-';
     const absMinutes = Math.abs(totalMinutes);
@@ -177,13 +178,22 @@ function formatDifferenceLabel(totalMinutes) {
     const minutes = absMinutes % 60;
     const parts = [];
     if (hours) {
-        parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
+        parts.push(`${hours}h`);
     }
     if (minutes) {
-        parts.push(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`);
+        parts.push(`${minutes}m`);
     }
-    const label = parts.join(' ');
-    return `${sign}${label}`;
+    return `${sign}${parts.join(' ')}`;
+}
+
+function describeDifference(diffHours) {
+    if (diffHours > 0) {
+        return 'Target ahead of local';
+    }
+    if (diffHours < 0) {
+        return 'Target behind local';
+    }
+    return 'Offsets match';
 }
 
 function renderTimeDifference() {
@@ -195,17 +205,16 @@ function renderTimeDifference() {
         elements.differenceDetail.textContent = '';
         return;
     }
-    if (!lastLocalDate || !lastTargetDate) {
+    if (lastLocalOffset === null || lastTargetOffset === null) {
         elements.differenceSummary.textContent = 'Calculating difference...';
-        elements.differenceDetail.textContent = `${selectedLocalTz} → ${selectedTargetTz}`;
+        elements.differenceDetail.textContent = 'Target relative to local';
         return;
     }
-    const diffMinutes = Math.round((lastTargetDate.getTime() - lastLocalDate.getTime()) / 60000);
-    const diffLabel = formatDifferenceLabel(diffMinutes);
-    const localTime = elements.localClock.textContent;
-    const targetTime = elements.targetClock.textContent;
-    elements.differenceSummary.textContent = `Local ${localTime} → ${diffLabel} → Target ${targetTime}`;
-    elements.differenceDetail.textContent = `${elements.localTzLabel.textContent} → ${elements.targetTzLabel.textContent}`;
+    const diffHours = lastTargetOffset - lastLocalOffset;
+    const diffLabel = formatDifferenceLabel(diffHours);
+    const detail = describeDifference(diffHours);
+    elements.differenceSummary.textContent = diffLabel;
+    elements.differenceDetail.textContent = detail;
 }
 
 async function updateClocks() {
@@ -252,8 +261,8 @@ function resetAll() {
     elements.targetInput.value = '';
     selectedTargetTz = '';
     elements.timeSlider.value = 0;
-    lastLocalDate = null;
-    lastTargetDate = null;
+    lastLocalOffset = null;
+    lastTargetOffset = null;
     renderTimeDifference();
     updateClocks();
 }

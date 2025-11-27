@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import pytz
 from fastapi import FastAPI, HTTPException, Query
@@ -61,6 +61,12 @@ def _build_timezone_info(tz_name: str, reference_utc: datetime) -> TimezoneInfo:
     )
 
 
+def _extract_offset_metadata(dt: datetime) -> Tuple[float, str]:
+    offset = dt.utcoffset() or timedelta()
+    offset_hours = offset.total_seconds() / 3600
+    return offset_hours, _format_offset_label(offset)
+
+
 class LocalTimeRequest(BaseModel):
     timezone: str = Field(..., description="IANA timezone name detected or chosen by the user")
     offset_hours: float = Field(0, description="Offset to apply in hours (-24 to 24)")
@@ -77,6 +83,8 @@ class TimeResponse(BaseModel):
     datetime_iso: str
     formatted: str
     offset_hours_applied: float
+    utc_offset_hours: float
+    utc_offset_label: str
 
 
 @app.get("/api/timezones", response_model=List[str])
@@ -101,11 +109,14 @@ def get_local_time(request: LocalTimeRequest) -> TimeResponse:
     now = datetime.now(tz)
     shifted = _apply_offset(now, request.offset_hours)
     formatted = shifted.strftime("%Y-%m-%d %H:%M:%S %Z")
+    offset_hours, offset_label = _extract_offset_metadata(shifted)
     return TimeResponse(
         timezone=request.timezone,
         datetime_iso=shifted.isoformat(),
         formatted=formatted,
         offset_hours_applied=request.offset_hours,
+        utc_offset_hours=offset_hours,
+        utc_offset_label=offset_label,
     )
 
 
@@ -118,12 +129,15 @@ def convert_time(request: ConvertTimeRequest) -> TimeResponse:
     shifted = _apply_offset(base_now, request.offset_hours)
     converted = shifted.astimezone(to_tz)
     formatted = converted.strftime("%Y-%m-%d %H:%M:%S %Z")
+    offset_hours, offset_label = _extract_offset_metadata(converted)
 
     return TimeResponse(
         timezone=request.to_timezone,
         datetime_iso=converted.isoformat(),
         formatted=formatted,
         offset_hours_applied=request.offset_hours,
+        utc_offset_hours=offset_hours,
+        utc_offset_label=offset_label,
     )
 
 

@@ -136,6 +136,7 @@ header p {
     border-radius: 16px;
     padding: 16px;
     box-shadow: var(--shadow);
+    text-align: center;
 }
 
 .clock-diff {
@@ -147,14 +148,16 @@ header p {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 6px;
+    gap: 8px;
     text-align: center;
+    min-height: 120px;
 }
 
 #differenceSummary {
     margin: 0;
-    font-size: 20px;
+    font-size: 28px;
     color: var(--text);
+    font-weight: 600;
 }
 
 .difference-detail {
@@ -166,9 +169,18 @@ header p {
 .clock h3 {
     margin: 0 0 12px;
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 4px;
     align-items: center;
     color: var(--muted);
+    text-align: center;
+}
+
+.clock h3 span {
+    color: var(--text);
+    font-size: 14px;
+    word-break: break-word;
+    max-width: 100%;
 }
 
 .clock-display {
