@@ -67,7 +67,14 @@ async function updateLocalClock(offsetHours) {
             throw new Error('Invalid local timezone');
         }
         const data = await response.json();
-        elements.localClock.textContent = new Date(data.datetime_iso).toLocaleTimeString();
+        const localDate = new Date(data.datetime_iso);
+        elements.localClock.textContent = new Intl.DateTimeFormat(undefined, {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+            timeZone: data.timezone,
+        }).format(localDate);
         elements.localTzLabel.textContent = data.timezone;
     } catch (err) {
         elements.localClock.textContent = 'Error fetching time';
@@ -95,7 +102,14 @@ async function updateTargetClock(offsetHours) {
             throw new Error('Invalid target timezone');
         }
         const data = await response.json();
-        elements.targetClock.textContent = new Date(data.datetime_iso).toLocaleTimeString();
+        const targetDate = new Date(data.datetime_iso);
+        elements.targetClock.textContent = new Intl.DateTimeFormat(undefined, {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+            timeZone: data.timezone,
+        }).format(targetDate);
         elements.targetTzLabel.textContent = data.timezone;
     } catch (err) {
         elements.targetClock.textContent = 'Error fetching time';
