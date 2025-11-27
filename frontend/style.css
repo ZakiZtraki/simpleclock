@@ -138,6 +138,31 @@ header p {
     box-shadow: var(--shadow);
 }
 
+.clock-diff {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
+}
+
+#differenceSummary {
+    margin: 0;
+    font-size: 20px;
+    color: var(--text);
+}
+
+.difference-detail {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+}
+
 .clock h3 {
     margin: 0 0 12px;
     display: flex;

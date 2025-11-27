@@ -29,26 +29,55 @@ const elements = {
     targetClock: document.getElementById('targetClock'),
     localTzLabel: document.getElementById('localTzLabel'),
     targetTzLabel: document.getElementById('targetTzLabel'),
+    differenceSummary: document.getElementById('differenceSummary'),
+    differenceDetail: document.getElementById('differenceDetail'),
     resetBtn: document.getElementById('resetBtn'),
 };
 
 let detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 let selectedLocalTz = detectedTimezone;
 let selectedTargetTz = '';
+let lastLocalDate = null;
+let lastTargetDate = null;
 
 async function fetchTimezones() {
     try {
+        const response = await fetch(`${apiBase}/api/timezones/details`);
+        if (!response.ok) {
+            throw new Error('Failed to load timezone details');
+        }
+        const data = await response.json();
+        populateTimezones(data);
+    } catch (err) {
+        console.error('Failed to load timezone details', err);
+        await fetchBasicTimezones();
+    }
+}
+
+async function fetchBasicTimezones() {
+    try {
         const response = await fetch(`${apiBase}/api/timezones`);
         const data = await response.json();
-        elements.timezonesDatalist.innerHTML = '';
-        data.forEach((tz) => {
-            const option = document.createElement('option');
-            option.value = tz;
-            elements.timezonesDatalist.appendChild(option);
-        });
+        const normalized = data.map((name) => ({ name }));
+        populateTimezones(normalized);
     } catch (err) {
         console.error('Failed to load timezones', err);
     }
+}
+
+function populateTimezones(entries) {
+    elements.timezonesDatalist.innerHTML = '';
+    entries.forEach((entry) => {
+        if (!entry || !entry.name) {
+            return;
+        }
+        const option = document.createElement('option');
+        const label = entry.utc_offset_label ? `${entry.name} (${entry.utc_offset_label})` : entry.name;
+        option.value = entry.name;
+        option.label = label;
+        option.textContent = label;
+        elements.timezonesDatalist.appendChild(option);
+    });
 }
 
 function setDetectedTimezone() {
@@ -84,6 +113,7 @@ async function updateLocalClock(offsetHours) {
         }
         const data = await response.json();
         const localDate = new Date(data.datetime_iso);
+        lastLocalDate = localDate;
         elements.localClock.textContent = new Intl.DateTimeFormat(undefined, {
             hour: '2-digit',
             minute: '2-digit',
@@ -94,6 +124,7 @@ async function updateLocalClock(offsetHours) {
         elements.localTzLabel.textContent = data.timezone;
     } catch (err) {
         elements.localClock.textContent = 'Error fetching time';
+        lastLocalDate = null;
         console.error(err);
     }
 }
@@ -102,6 +133,7 @@ async function updateTargetClock(offsetHours) {
     if (!selectedTargetTz) {
         elements.targetClock.textContent = 'Choose a timezone';
         elements.targetTzLabel.textContent = '--';
+        lastTargetDate = null;
         return;
     }
     try {
@@ -119,6 +151,7 @@ async function updateTargetClock(offsetHours) {
         }
         const data = await response.json();
         const targetDate = new Date(data.datetime_iso);
+        lastTargetDate = targetDate;
         elements.targetClock.textContent = new Intl.DateTimeFormat(undefined, {
             hour: '2-digit',
             minute: '2-digit',
@@ -129,14 +162,57 @@ async function updateTargetClock(offsetHours) {
         elements.targetTzLabel.textContent = data.timezone;
     } catch (err) {
         elements.targetClock.textContent = 'Error fetching time';
+        lastTargetDate = null;
         console.error(err);
     }
+}
+
+function formatDifferenceLabel(totalMinutes) {
+    if (totalMinutes === 0) {
+        return '0 hours';
+    }
+    const sign = totalMinutes > 0 ? '+' : '-';
+    const absMinutes = Math.abs(totalMinutes);
+    const hours = Math.floor(absMinutes / 60);
+    const minutes = absMinutes % 60;
+    const parts = [];
+    if (hours) {
+        parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
+    }
+    if (minutes) {
+        parts.push(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`);
+    }
+    const label = parts.join(' ');
+    return `${sign}${label}`;
+}
+
+function renderTimeDifference() {
+    if (!elements.differenceSummary || !elements.differenceDetail) {
+        return;
+    }
+    if (!selectedTargetTz) {
+        elements.differenceSummary.textContent = 'Select a target timezone to compare.';
+        elements.differenceDetail.textContent = '';
+        return;
+    }
+    if (!lastLocalDate || !lastTargetDate) {
+        elements.differenceSummary.textContent = 'Calculating difference...';
+        elements.differenceDetail.textContent = `${selectedLocalTz} → ${selectedTargetTz}`;
+        return;
+    }
+    const diffMinutes = Math.round((lastTargetDate.getTime() - lastLocalDate.getTime()) / 60000);
+    const diffLabel = formatDifferenceLabel(diffMinutes);
+    const localTime = elements.localClock.textContent;
+    const targetTime = elements.targetClock.textContent;
+    elements.differenceSummary.textContent = `Local ${localTime} → ${diffLabel} → Target ${targetTime}`;
+    elements.differenceDetail.textContent = `${elements.localTzLabel.textContent} → ${elements.targetTzLabel.textContent}`;
 }
 
 async function updateClocks() {
     const offsetHours = parseFloat(elements.timeSlider.value);
     updateOffsetDisplay(offsetHours);
     await Promise.all([updateLocalClock(offsetHours), updateTargetClock(offsetHours)]);
+    renderTimeDifference();
 }
 
 function handleAutoToggle() {
@@ -176,6 +252,9 @@ function resetAll() {
     elements.targetInput.value = '';
     selectedTargetTz = '';
     elements.timeSlider.value = 0;
+    lastLocalDate = null;
+    lastTargetDate = null;
+    renderTimeDifference();
     updateClocks();
 }
 

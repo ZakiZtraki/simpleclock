@@ -27,6 +27,40 @@ def _get_timezone(tz_name: str) -> timezone:
         raise HTTPException(status_code=400, detail=f"Invalid timezone: {tz_name}") from exc
 
 
+def _filter_timezones(query: Optional[str]) -> List[str]:
+    timezones = sorted(pytz.common_timezones)
+    if query:
+        query_lower = query.lower()
+        timezones = [tz for tz in timezones if query_lower in tz.lower()]
+    return timezones
+
+
+def _format_offset_label(offset: timedelta) -> str:
+    total_minutes = int(offset.total_seconds() / 60)
+    sign = "+" if total_minutes >= 0 else "-"
+    abs_minutes = abs(total_minutes)
+    hours, minutes = divmod(abs_minutes, 60)
+    return f"UTC{sign}{hours:02d}:{minutes:02d}"
+
+
+class TimezoneInfo(BaseModel):
+    name: str
+    utc_offset_hours: float
+    utc_offset_label: str
+
+
+def _build_timezone_info(tz_name: str, reference_utc: datetime) -> TimezoneInfo:
+    tz = _get_timezone(tz_name)
+    localized = reference_utc.astimezone(tz)
+    offset = localized.utcoffset() or timedelta()
+    offset_hours = offset.total_seconds() / 3600
+    return TimezoneInfo(
+        name=tz_name,
+        utc_offset_hours=offset_hours,
+        utc_offset_label=_format_offset_label(offset),
+    )
+
+
 class LocalTimeRequest(BaseModel):
     timezone: str = Field(..., description="IANA timezone name detected or chosen by the user")
     offset_hours: float = Field(0, description="Offset to apply in hours (-24 to 24)")
@@ -47,11 +81,14 @@ class TimeResponse(BaseModel):
 
 @app.get("/api/timezones", response_model=List[str])
 def list_timezones(query: Optional[str] = Query(None, description="Filter timezones by substring")) -> List[str]:
-    timezones = sorted(pytz.common_timezones)
-    if query:
-        query_lower = query.lower()
-        timezones = [tz for tz in timezones if query_lower in tz.lower()]
-    return timezones
+    return _filter_timezones(query)
+
+
+@app.get("/api/timezones/details", response_model=List[TimezoneInfo])
+def list_timezone_details(query: Optional[str] = Query(None, description="Filter timezones by substring")) -> List[TimezoneInfo]:
+    reference_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
+    timezones = _filter_timezones(query)
+    return [_build_timezone_info(tz, reference_utc) for tz in timezones]
 
 
 def _apply_offset(base_dt: datetime, offset_hours: float) -> datetime:
